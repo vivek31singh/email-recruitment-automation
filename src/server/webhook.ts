@@ -4,7 +4,6 @@ import cron from 'node-cron';
 import { Queue } from 'bullmq';
 import { redisConnection } from '../queue/connection';
 import { makeWatchRequest } from '../utils/watchRequest';
-import { runWorkflow } from '../client';
 import { fetchMessagesFromHistory } from '../lib/fetchMessagesFromHistory';
 import { setHistoryId } from '../lib/setHistoryId';
 import { getHistoryId } from '../lib/getHistoryid';
@@ -46,6 +45,8 @@ app.post('/webhook/gmail', async (req, res) => {
   const previousHistoryId = await getHistoryId(emailAddress);
 
   const messages = await fetchMessagesFromHistory(previousHistoryId ?? String(historyId));
+  
+  await setHistoryId(emailAddress, String(historyId));
 
   if (messages.length === 0) {
     console.log('No new emails found', messages);
@@ -55,7 +56,8 @@ app.post('/webhook/gmail', async (req, res) => {
     return;
   }
 
-  await setHistoryId(emailAddress, String(historyId));
+   console.log('New emails found', messages);
+
 
   const jobRelatedEmails = await filterJobRelatedMessages(
     messages.filter((m): m is gmail_v1.Schema$Message => m !== undefined && m?.id !== undefined),

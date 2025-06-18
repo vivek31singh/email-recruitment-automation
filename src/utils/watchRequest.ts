@@ -15,7 +15,7 @@ export const makeWatchRequest = async () => {
       authorization: `Bearer ${access_token}`,
     },
     body: JSON.stringify({
-      topicName: 'projects/sylvan-willow-462407-e1/topics/recruit-ai',
+      topicName: 'projects/recruit-ai-463310/topics/recruit-ai',
       labelIds: ['INBOX'],
     }),
   });

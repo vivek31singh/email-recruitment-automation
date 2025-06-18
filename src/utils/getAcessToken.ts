@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import path from 'path';
+import { getOAuth2Client } from './getOAuthClient';
 
 config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -18,6 +19,10 @@ export async function getAccessToken(): Promise<string> {
 
   if (cachedAccessToken && now < tokenExpiryTimestamp) {
     return cachedAccessToken;
+  }
+
+  if(!process.env.GOOGLE_REFRESH_TOKEN){
+    await getOAuth2Client();
   }
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
