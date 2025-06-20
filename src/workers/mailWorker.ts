@@ -2,6 +2,10 @@ import { Worker } from 'bullmq';
 import { redisConnection } from '../queue/connection';
 import { runWorkflow } from '../client';
 import { gmail_v1 } from 'googleapis';
+import { getHistoryId } from '../utils/helper/getHistoryid';
+import { fetchMessagesFromHistory } from '../utils/helper/fetchMessagesFromHistory';
+import { setHistoryId } from '../utils/helper/setHistoryId';
+import { filterJobRelatedMessages } from '../utils/helper/filterJobRelatedMessages';
 
 const worker = new Worker(
   'mail-jobs',
@@ -10,12 +14,30 @@ const worker = new Worker(
 
     switch (name) {
       case 'process-job-emails':
-        console.log('emailData from BullMQ worker:- ', data);
+        const { emailAddress, historyId } = data;
 
-        const jobRelatedEmails =
-          (data.jobRelatedEmails as { id: string; snippet: string; payload: gmail_v1.Schema$MessagePart }[]) || [];
+        if (!historyId || !emailAddress) {
+          console.log('Missing historyId or emailAddress');
+          return;
+        }
 
-          console.log('jobRelatedEmails:- ', jobRelatedEmails);
+        const previousHistoryId = await getHistoryId(emailAddress);
+
+        const messages = await fetchMessagesFromHistory(previousHistoryId ?? String(historyId));
+
+        await setHistoryId(emailAddress, String(historyId));
+
+        if (messages.length === 0) {
+          console.log('No new emails found', messages);
+          return;
+        }
+
+        console.log('New emails found', messages);
+
+        const jobRelatedEmails = await filterJobRelatedMessages(
+          messages.filter((m): m is gmail_v1.Schema$Message => m !== undefined && m?.id !== undefined),
+        );
+        console.log('jobRelatedEmails:- ', jobRelatedEmails);
         if (jobRelatedEmails.length === 0) {
           console.log('No job related emails found');
           return;

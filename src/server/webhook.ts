@@ -42,40 +42,18 @@ app.post('/webhook/gmail', async (req, res) => {
     return;
   }
 
-  const previousHistoryId = await getHistoryId(emailAddress);
-
-  const messages = await fetchMessagesFromHistory(previousHistoryId ?? String(historyId));
-  
-  await setHistoryId(emailAddress, String(historyId));
-
-  if (messages.length === 0) {
-    console.log('No new emails found', messages);
-    res.json({
-      message: 'No new emails found',
-    });
-    return;
-  }
-
-   console.log('New emails found', messages);
-
-
-  const jobRelatedEmails = await filterJobRelatedMessages(
-    messages.filter((m): m is gmail_v1.Schema$Message => m !== undefined && m?.id !== undefined),
+  await mailQueue.add(
+    'process-job-emails',
+    {
+      emailAddress,
+      historyId,
+    },
+    {
+      removeOnComplete: true,
+      removeOnFail: { count: 5 },
+      attempts: 3,
+    },
   );
-
-  if (jobRelatedEmails.length > 0) {
-    await mailQueue.add(
-      'process-job-emails',
-      {
-        jobRelatedEmails,
-      },
-      {
-        removeOnComplete: true,
-        removeOnFail: { count: 5 },
-        attempts: 3,
-      },
-    );
-  }
 
   res.json({
     message: 'Gmail webhook received',
