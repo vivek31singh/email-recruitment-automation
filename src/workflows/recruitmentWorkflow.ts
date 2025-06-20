@@ -1,10 +1,9 @@
 import { proxyActivities } from '@temporalio/workflow';
 // Only import the activity types
-import type * as activities from './activities';
-import { EvaluationResponse } from './activities';
+import type * as activities from '../activities/RecruitmentActivities';
+import { EvaluationResponse } from '../activities/RecruitmentActivities';
 
 const {
-  fetchEmails,
   extractAttachments,
   getAttachmentData,
   extractTextFromDOCX,
@@ -25,12 +24,7 @@ interface File {
 
 type Attachments = File[];
 
-/** A workflow that simply calls an activity */
 export async function RecruitmentWorkflow(jobRelatedEmails?: { id: string; snippet: string; payload: any }[]) {
-  // const emails = await fetchEmails();
-
-  // console.log('STEP 1: Fetched emails', emails.length);
-
   if (!jobRelatedEmails || jobRelatedEmails.length === 0) {
     return;
   }
@@ -81,13 +75,12 @@ export async function RecruitmentWorkflow(jobRelatedEmails?: { id: string; snipp
         parsedResumeText = await extractTextFromPDF(attachmentData);
         console.log('Extracted text:', parsedResumeText);
       }
-   
-        console.log('AI EVALUATION STARTED...');
-        const evaluation = await evaluateResume({ parsedResumeText, email });
-        console.log('AI EVALUATION COMPLETED', evaluation);
-        evaluationResponse = evaluation;
-      }
-    
+
+      console.log('AI EVALUATION STARTED...');
+      const evaluation = await evaluateResume({ parsedResumeText, email });
+      console.log('AI EVALUATION COMPLETED', evaluation);
+      evaluationResponse = evaluation;
+    }
 
     if (evaluationResponse) {
       console.log('SENDING EMAIL RESPONSE...');
@@ -96,5 +89,5 @@ export async function RecruitmentWorkflow(jobRelatedEmails?: { id: string; snipp
     }
   }
 
-return "Workflow Completed";
+  return 'Workflow Completed';
 }

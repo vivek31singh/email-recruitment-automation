@@ -1,4 +1,4 @@
-import { getGmailClient } from './lib/gmailClient';
+import { getGmailClient } from '../utils/OAuth/gmailClient';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { config } from 'dotenv';

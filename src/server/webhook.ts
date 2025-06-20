@@ -3,11 +3,11 @@ import cron from 'node-cron';
 
 import { Queue } from 'bullmq';
 import { redisConnection } from '../queue/connection';
-import { makeWatchRequest } from '../utils/watchRequest';
-import { fetchMessagesFromHistory } from '../lib/fetchMessagesFromHistory';
-import { setHistoryId } from '../lib/setHistoryId';
-import { getHistoryId } from '../lib/getHistoryid';
-import { filterJobRelatedMessages } from '../lib/filterJobRelatedMessages';
+import { makeWatchRequest } from '../utils/OAuth/watchRequest';
+import { fetchMessagesFromHistory } from '../utils/helper/fetchMessagesFromHistory';
+import { setHistoryId } from '../utils/helper/setHistoryId';
+import { getHistoryId } from '../utils/helper/getHistoryid';
+import { filterJobRelatedMessages } from '../utils/helper/filterJobRelatedMessages';
 import { gmail_v1 } from 'googleapis';
 
 const app = express();

@@ -1,4 +1,4 @@
-import { getGmailClient } from "./gmailClient";
+import { getGmailClient } from "../OAuth/gmailClient";
 
 export async function fetchMessagesFromHistory(historyId: string) {
   const gmail = await getGmailClient();

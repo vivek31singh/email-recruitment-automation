@@ -1,5 +1,5 @@
 import { gmail_v1 } from "googleapis";
-import { getGmailClient } from "./gmailClient";
+import { getGmailClient } from "../OAuth/gmailClient";
 
 function isJobRelated(message: gmail_v1.Schema$Message): boolean | undefined {
     const payload = message.payload;

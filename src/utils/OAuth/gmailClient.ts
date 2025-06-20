@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { getOAuth2Client } from '../utils/getOAuthClient';
+import { getOAuth2Client } from './getOAuthClient';
 
 let gmailClientCache: ReturnType<typeof google.gmail> | null = null;
 

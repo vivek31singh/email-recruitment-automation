@@ -1,8 +1,8 @@
 import { TestWorkflowEnvironment } from '@temporalio/testing';
 import { before, describe, it } from 'mocha';
 import { Worker } from '@temporalio/worker';
-import { example } from '../workflows';
-import * as activities from '../activities';
+import { example } from '../workflows/recruitmentWorkflow';
+import * as activities from '../activities/RecruitmentActivities';
 import assert from 'assert';
 
 describe('Example workflow', () => {

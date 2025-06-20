@@ -1,5 +1,5 @@
 import { NativeConnection, Worker } from '@temporalio/worker';
-import * as activities from './activities';
+import * as activities from '../activities/RecruitmentActivities';
 
 async function run() {
  
@@ -12,7 +12,7 @@ async function run() {
       connection,
       namespace: 'default',
       taskQueue: 'recruitment-ai-automation',
-      workflowsPath: require.resolve('./workflows'),
+      workflowsPath: require.resolve('../workflows/recruitmentWorkflow'),
       activities,
     });
 

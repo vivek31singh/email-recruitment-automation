@@ -1,8 +1,6 @@
 import { Connection, Client } from '@temporalio/client';
-import { RecruitmentWorkflow } from './workflows';
+import { RecruitmentWorkflow } from './workflows/recruitmentWorkflow';
 import { nanoid } from 'nanoid';
-
-
 
 export async function runWorkflow(jobRelatedEmails?: { id: string; snippet: string; payload: any }[]) {
   // Connect to the default Server location
@@ -24,7 +22,6 @@ export async function runWorkflow(jobRelatedEmails?: { id: string; snippet: stri
     args: [jobRelatedEmails],
     // in practice, use a meaningful business ID, like customerId or transactionId
     workflowId: 'workflow-' + nanoid(),
-    
   });
 
   // optional: wait for workflow completion
