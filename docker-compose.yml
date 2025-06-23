@@ -11,6 +11,8 @@ services:
     env_file:
       - .env
     command: ['npm', 'run', 'server']
+    ports:
+      - '3000:3000'
     networks:
       - temporal-network
     restart: unless-stopped
