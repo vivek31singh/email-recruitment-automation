@@ -1,10 +1,16 @@
 import { NativeConnection, Worker } from '@temporalio/worker';
 import * as activities from '../activities/RecruitmentActivities';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 async function run() {
  
+  const enviroment = process.env.NODE_ENV;
+
   const connection = await NativeConnection.connect({
-    address: 'localhost:7233',
+    address: enviroment === 'development' ? 'localhost:7233' : 'temporal:7233',
   });
 
   try {
