@@ -8,12 +8,13 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "start": "ts-node src/workers/temporalWorker.ts",
-    "start:mail-worker": "ts-node src/workers/mailWorker.ts",
+    "start": "node build/workers/temporalWorker.js",
     "start.watch": "nodemon src/workers/temporalWorker.ts",
+    "mail-worker": "node build/workers/mailWorker.js",
+    "start:mail-worker": "ts-node src/workers/mailWorker.ts",
+    "server": "concurrently \"node build/server/webhook.js\" \"ngrok http 3000\" \"node log-ngrok-url.js\"",
     "start.server": "nodemon src/server/webhook.ts",
-    "workflow": "ts-node src/client.ts",
-    "test": "mocha --exit --require ts-node/register --require source-map-support/register src/mocha/*.test.ts"
+    "workflow": "ts-node src/client.ts"
   },
   "nodemonConfig": {
     "execMap": {
@@ -30,7 +31,6 @@
     "@temporalio/worker": "^1.11.8",
     "@temporalio/workflow": "^1.11.8",
     "bullmq": "^5.54.1",
-    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "googleapis": "^150.0.1",
     "ioredis": "^5.6.1",
@@ -48,6 +48,8 @@
     "@types/pdf-parse": "^1.1.5",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
+    "concurrently": "^9.2.0",
+    "dotenv": "^16.5.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-deprecation": "^3.0.0",

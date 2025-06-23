@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  webhook-server:
+    build: .
+    container_name: webhook-server
+    env_file:
+      - .env
+    command: ['node', 'build/server/webhook.js']
+    depends_on:
+      - temporal
+    restart: unless-stopped
+
+  temporal-worker:
+    build: .
+    container_name: temporal-worker
+    command: ['node', 'build/workers/temporalWorker.js']
+    depends_on:
+      - temporal
+    restart: unless-stopped
+
+  mail-worker:
+    build: .
+    container_name: mail-worker
+    command: ['node', 'build/workers/mailWorker.js']
+    depends_on:
+      - temporal
+    restart: unless-stopped

@@ -4,11 +4,10 @@ import cron from 'node-cron';
 import { Queue } from 'bullmq';
 import { redisConnection } from '../queue/connection';
 import { makeWatchRequest } from '../utils/OAuth/watchRequest';
-import { fetchMessagesFromHistory } from '../utils/helper/fetchMessagesFromHistory';
-import { setHistoryId } from '../utils/helper/setHistoryId';
-import { getHistoryId } from '../utils/helper/getHistoryid';
-import { filterJobRelatedMessages } from '../utils/helper/filterJobRelatedMessages';
-import { gmail_v1 } from 'googleapis';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
 
@@ -69,7 +68,8 @@ cron.schedule('0 2 * * *', () => {
   makeWatchRequest().catch(console.error);
 });
 
-app.listen(3000, async () => {
+const port = process.env.NODE_PORT || 3000;
+app.listen(port, async () => {
   console.log('Server started on port 3000');
   console.log('   Running initial Gmail watch request...');
   try {
