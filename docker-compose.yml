@@ -1,28 +1,39 @@
-version: '3.9'
+networks:
+  temporal-network:
+    external: true
 
 services:
   webhook-server:
-    build: .
+    build:
+      context: .
     container_name: webhook-server
     env_file:
       - .env
     command: ['node', 'build/server/webhook.js']
     depends_on:
       - temporal
+    networks:
+      - temporal-network
     restart: unless-stopped
 
   temporal-worker:
-    build: .
+    build:
+      context: .
     container_name: temporal-worker
     command: ['node', 'build/workers/temporalWorker.js']
     depends_on:
       - temporal
+    networks:
+      - temporal-network
     restart: unless-stopped
 
   mail-worker:
-    build: .
+    build:
+      context: .
     container_name: mail-worker
     command: ['node', 'build/workers/mailWorker.js']
     depends_on:
       - temporal
+    networks:
+      - temporal-network
     restart: unless-stopped
