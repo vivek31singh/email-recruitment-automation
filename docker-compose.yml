@@ -1,3 +1,4 @@
+version: '3'
 networks:
   temporal-network:
     external: true
@@ -10,8 +11,6 @@ services:
     env_file:
       - .env
     command: ['node', 'build/server/webhook.js']
-    depends_on:
-      - temporal
     networks:
       - temporal-network
     restart: unless-stopped
@@ -21,8 +20,6 @@ services:
       context: .
     container_name: temporal-worker
     command: ['node', 'build/workers/temporalWorker.js']
-    depends_on:
-      - temporal
     networks:
       - temporal-network
     restart: unless-stopped
@@ -32,8 +29,7 @@ services:
       context: .
     container_name: mail-worker
     command: ['node', 'build/workers/mailWorker.js']
-    depends_on:
-      - temporal
     networks:
       - temporal-network
     restart: unless-stopped
+
