@@ -10,7 +10,7 @@ services:
     container_name: webhook-server
     env_file:
       - .env
-    command: ['node', 'build/server/webhook.js']
+    command: ['npm', 'run', 'server']
     networks:
       - temporal-network
     restart: unless-stopped
@@ -19,7 +19,7 @@ services:
     build:
       context: .
     container_name: temporal-worker
-    command: ['node', 'build/workers/temporalWorker.js']
+    command: ['npm', 'run', 'start']
     networks:
       - temporal-network
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
     build:
       context: .
     container_name: mail-worker
-    command: ['node', 'build/workers/mailWorker.js']
+    command: ['npm', 'run', 'mail-worker']
     networks:
       - temporal-network
     restart: unless-stopped
