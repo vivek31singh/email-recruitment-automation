@@ -15,10 +15,14 @@ let memoryTokens: {
 export async function getOAuth2Client(): Promise<any> {
   if (cachedOAuth2Client) return cachedOAuth2Client;
 
+  const enviroment = process.env.NODE_ENV;
+  const REDIRECT_URL =
+    enviroment === 'development' ? process.env.GOOGLE_REDIRECT_LOCAL_URI : process.env.GOOGLE_REDIRECT_URI;
+
   const oAuth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    REDIRECT_URL,
   );
 
   const refresh_token = process.env.GOOGLE_REFRESH_TOKEN;
