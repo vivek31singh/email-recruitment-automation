@@ -6,6 +6,8 @@ RUN apk add --no-cache curl unzip && \
     unzip ngrok-stable-linux-amd64.zip -d /usr/local/bin && \
     rm ngrok-stable-linux-amd64.zip
 
+CMD ["ngrok config add-authtoken 2ytwG1VrjwaV0k9pAJAVm4hqLnF_4fF35zA5TgP4nsx6AwqFs"]
+
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
