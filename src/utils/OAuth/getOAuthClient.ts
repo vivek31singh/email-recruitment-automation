@@ -3,7 +3,7 @@ import readline from 'readline';
 import { config } from 'dotenv';
 import path from 'path';
 
-config({ path: path.resolve(__dirname, '../../.env') });
+config({ path: path.resolve(__dirname, '../../../.env') });
 
 // Simple in-memory cache and token store
 let cachedOAuth2Client: any = null;
