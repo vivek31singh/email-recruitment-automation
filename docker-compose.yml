@@ -3,6 +3,7 @@ networks:
     external: true
 
 services:
+  # Webhook Service
   webhook-server:
     build:
       context: .
@@ -16,6 +17,7 @@ services:
       - temporal-network
     restart: unless-stopped
 
+  # Temporal Worker
   temporal-worker:
     build:
       context: .
@@ -25,6 +27,7 @@ services:
       - temporal-network
     restart: unless-stopped
 
+  # Mail Worker
   mail-worker:
     build:
       context: .
@@ -34,3 +37,61 @@ services:
       - temporal-network
     restart: unless-stopped
 
+  # Temporal Backend Services
+  temporal:
+    image: temporalio/auto-setup:1.22
+    container_name: temporal
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-postgresql
+    ports:
+      - "7233:7233" # Temporal frontend gRPC
+    depends_on:
+      - temporal-postgresql
+    networks:
+      - temporal-network
+    restart: unless-stopped
+
+  temporal-postgresql:
+    image: postgres:13
+    container_name: temporal-postgresql
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    volumes:
+      - temporal_pgdata:/var/lib/postgresql/data
+    networks:
+      - temporal-network
+    restart: unless-stopped
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: temporal-ui
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    ports:
+      - "1234:8080"
+    depends_on:
+      - temporal
+    networks:
+      - temporal-network
+    restart: unless-stopped
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:latest
+    container_name: temporal-admin-tools
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    stdin_open: true
+    tty: true
+    depends_on:
+      - temporal
+    networks:
+      - temporal-network
+    restart: unless-stopped
+
+volumes:
+  temporal_pgdata:

@@ -1,10 +1,19 @@
 import { Connection, Client } from '@temporalio/client';
 import { RecruitmentWorkflow } from './workflows/recruitmentWorkflow';
 import { nanoid } from 'nanoid';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 export async function runWorkflow(jobRelatedEmails?: { id: string; snippet: string; payload: any }[]) {
   // Connect to the default Server location
-  const connection = await Connection.connect({ address: 'localhost:7233' });
+
+  const enviroment = process.env.NODE_ENV;
+  
+  const connection = await Connection.connect({
+    address: enviroment === 'development' ? 'localhost:7233' : 'temporal:7233',
+  });
   // In production, pass options to configure TLS and other settings:
   // {
   //   address: 'foo.bar.tmprl.cloud',
