@@ -13,6 +13,7 @@ export async function runWorkflow(jobRelatedEmails?: { id: string; snippet: stri
   
   const connection = await Connection.connect({
     address: enviroment === 'development' ? 'localhost:7233' : 'temporal:7233',
+    tls: enviroment === 'development' ? false : {}
   });
   // In production, pass options to configure TLS and other settings:
   // {
