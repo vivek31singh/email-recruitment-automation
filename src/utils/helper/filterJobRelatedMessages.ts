@@ -1,16 +1,34 @@
 import { gmail_v1 } from 'googleapis';
 import { getGmailClient } from '../OAuth/gmailClient';
+import { threadId } from 'worker_threads';
 
 function isJobRelated(message: gmail_v1.Schema$Message): boolean | undefined {
   const payload = message.payload;
   const subjectHeader = payload?.headers?.find((h) => h.name === 'Subject')?.value || '';
-  const bodyText = Buffer.from(payload?.body?.data || '', 'base64').toString('utf-8');
+   const bodyText = Buffer.from(payload?.body?.data || '', 'base64').toString('utf-8');
   const hasAttachment = message.payload?.parts?.some((part) => part.filename);
 
   const lowerSubject = subjectHeader.toLowerCase();
   const lowerBody = bodyText.toLowerCase();
 
-  const keywords = ['resume', 'cv', 'job application', 'cover letter'];
+  const keywords = [
+    'resume',
+    'cv',
+    'job application',
+    'cover letter',
+    'application',
+    'job',
+    'opening',
+    'position',
+    'apply',
+    'career',
+    'employment',
+    'hire',
+    'recruit',
+    'work',
+    'jobsearch',
+    'interview',
+  ];
   const badKeywords = ['bank', 'statement', 'noreply', 'donotreply'];
 
   const containsKeyword = keywords.some((k) => lowerSubject.includes(k) || lowerBody.includes(k));
@@ -57,7 +75,11 @@ export async function filterJobRelatedMessages<Type extends Iterable<gmail_v1.Sc
 
   return relevantMessages.map((fm) => ({
     id: fm.data.id ?? '',
+    subject: fm.data.payload?.headers?.find((h) => h.name === 'Subject')?.value ?? '',
     snippet: fm.data.snippet ?? '',
     payload: fm.data.payload ?? {},
+    labelIds: fm.data.labelIds ?? [],
+    threadId: fm.data.threadId ?? '',
+    messageId: fm.data.payload?.headers?.find((h) => h.name === 'Message-Id')?.value ?? '',
   }));
 }

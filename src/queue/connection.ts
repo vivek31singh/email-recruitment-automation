@@ -1,4 +1,4 @@
-import { RedisOptions } from 'ioredis';
+import { RedisOptions,Redis } from 'ioredis';
 import { config } from 'dotenv';
 import path from 'path';
 
@@ -11,3 +11,5 @@ export const redisConnection: RedisOptions = {
   username: 'default',
   tls: {},
 };
+
+export const redis = new Redis(redisConnection);

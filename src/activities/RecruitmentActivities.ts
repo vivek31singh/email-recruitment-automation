@@ -3,6 +3,10 @@ import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { config } from 'dotenv';
 import path from 'path';
+import { redisConnection } from '../queue/connection';
+import { Queue } from 'bullmq';
+import { application } from 'express';
+import { threadId } from 'worker_threads';
 
 config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -23,6 +27,22 @@ export interface EvaluationResponse {
 interface SendEmailResponseArgs {
   evaluationResponse: EvaluationResponse;
   email: any;
+}
+
+interface ASKAI {
+  prompt: string;
+  systemMessage: string;
+}
+
+interface EmailData {
+  to: string;
+  subject: string;
+  body: string;
+}
+
+interface REPLYEMAILDATA extends EmailData {
+  messageId: string;
+  threadId: string;
 }
 
 export async function fetchEmails() {
@@ -47,6 +67,250 @@ export async function fetchEmails() {
     snippet: m.data.snippet,
     payload: m.data.payload,
   }));
+}
+
+export const askAI = async ({ prompt, systemMessage }: ASKAI) => {
+  const openrouterApiKey = process.env.OPENROUTER_AI_KEY;
+
+  if (!openrouterApiKey) {
+    throw new Error('OPENROUTER_API_KEY is not set');
+  }
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${openrouterApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+        {
+          role: 'system',
+          content: systemMessage,
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to evaluate');
+  }
+
+  const evaluationResponse: any = await response.json();
+
+  if (!evaluationResponse.choices) {
+    throw new Error('Failed to evaluate');
+  }
+
+  const message = evaluationResponse.choices[0].message.content;
+
+  const output = message || '';
+
+  const cleanedOutput = output.replace(/```(?:json)?|```/g, '').trim();
+
+  try {
+    const parsedOutput = JSON.parse(cleanedOutput);
+    return parsedOutput;
+  } catch (e: any) {
+    return {
+      error: 'Invalid JSON format in output',
+      raw: cleanedOutput,
+      message: e.message,
+    };
+  }
+};
+
+export async function sendEmail(emailData: EmailData) {
+  const gmail = await getGmailClient();
+
+  if (!emailData) {
+    throw new Error('Email data is empty');
+  }
+
+  const rawMessage = Buffer.from(`To: ${emailData.to}\r\nSubject: ${emailData.subject}\r\n\r\n${emailData.body}`)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  const response = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: rawMessage },
+  });
+
+  return response.data;
+}
+
+export async function sendEmailAsReply(emailData: REPLYEMAILDATA) {
+  const gmail = await getGmailClient();
+
+  if (!emailData) {
+    throw new Error('Email data is empty');
+  }
+
+  const { to, subject, body, messageId, threadId } = emailData;
+
+  const rawMessage = Buffer.from(
+    `To: ${to}\r\n` +
+      `Subject: ${subject}\r\n` +
+      `In-Reply-To: ${messageId}\r\n` +
+      `References: ${messageId}\r\n` +
+      `Content-Type: text/plain; charset="UTF-8"\r\n` +
+      `\r\n` +
+      `${body}`,
+  )
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  const response = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: rawMessage, threadId: threadId },
+  });
+
+  return response.data;
+}
+
+export async function fetchRelevantJobs(jobTitle: string) {
+  const crudBackendUrl =
+    process.env.NODE_ENV === 'production' ? process.env.CRUD_BACKEND_URL : process.env.CRUD_BACKEND_DEV_URL;
+
+  if (!crudBackendUrl) {
+    throw new Error('CRUD_BACKEND_URL is not set');
+  }
+
+  if (!jobTitle) {
+    throw new Error('Job title is empty');
+  }
+
+  try {
+    const res = await fetch(`${crudBackendUrl}/api/career?key=title&value=${jobTitle}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.log('Error in fetching relevant jobs from crud backend', err);
+    return [];
+  }
+}
+
+export async function checkLabelExists({ label, emailId }: { label: string; emailId: string }): Promise<boolean> {
+  if (!label || !emailId) {
+    throw new Error('Label or emailId is empty');
+  }
+
+  try {
+    const gmail = await getGmailClient();
+    const freshEmail = await gmail.users.messages.get({ userId: 'me', id: emailId });
+    const labels = freshEmail.data.labelIds || [];
+    const hasLabel = labels.includes(label);
+
+    return hasLabel;
+  } catch (e) {
+    console.log("Error in checking label",e);
+    return false;
+  }
+}
+
+export async function addLabelToEmail({
+  label,
+  emailId,
+  removeLabels = ['INBOX', 'UNREAD'],
+}: {
+  label: string;
+  emailId: string;
+  removeLabels?: string[];
+}) {
+  if (!label || !emailId) {
+    throw new Error('Label or emailId is empty');
+  }
+
+  console.log('Adding label to email', label, emailId);
+
+  try {
+    const gmail = await getGmailClient();
+
+    const existingLabels = await gmail.users.labels.list({ userId: 'me' });
+    const existingLabel = existingLabels.data.labels?.find((l) => l.name === label);
+
+    let labelId = existingLabel?.id;
+
+    const labelMap = new Map(existingLabels.data.labels?.map((l) => [l.name, l.id]));
+
+    const resolvedRemoveLabelIds = removeLabels
+      .map((name) => {
+        if (['INBOX', 'UNREAD', 'STARRED', 'IMPORTANT'].includes(name)) return name;
+
+        if (labelMap.has(name)) return labelMap.get(name);
+
+        console.warn(`Label not found: ${name}`);
+        return null;
+      })
+      .filter((id): id is string => !!id);
+
+    if (!labelId) {
+      const createLabelRes = await gmail.users.labels.create({
+        userId: 'me',
+        requestBody: {
+          name: label,
+          labelListVisibility: 'labelShow',
+          messageListVisibility: 'show',
+        },
+      });
+
+      labelId = createLabelRes.data.id;
+    }
+
+    if (emailId && labelId) {
+      await gmail.users.messages.modify({
+        userId: 'me',
+        id: emailId,
+        requestBody: {
+          addLabelIds: [labelId],
+          removeLabelIds: resolvedRemoveLabelIds,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Gmail label update failed:', error);
+  }
+}
+
+export async function scheduleReminder({
+  to,
+  subject,
+  body,
+  emailId,
+  threadId
+}: {
+  to: string;
+  subject: string;
+  body: string;
+  emailId: string;
+  threadId: string;
+}) {
+  const reminderQueue = new Queue('reminder-queue', {
+    connection: redisConnection,
+  });
+
+  await reminderQueue.add(
+    `reminder-job`,
+    { email: { to, subject, body }, emailId, threadId },
+    {
+      jobId: `reminder-job-${threadId}`,
+      delay: 24 * 60 * 60 * 1000, // 24 hours
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
+    },
+  );
 }
 
 export async function extractAttachments(email: any) {

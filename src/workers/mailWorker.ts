@@ -6,9 +6,10 @@ import { getHistoryId } from '../utils/helper/getHistoryid';
 import { fetchMessagesFromHistory } from '../utils/helper/fetchMessagesFromHistory';
 import { setHistoryId } from '../utils/helper/setHistoryId';
 import { filterJobRelatedMessages } from '../utils/helper/filterJobRelatedMessages';
+import { filterRepliedMessages } from '../utils/helper/filterRepliedMessages';
 
 const worker = new Worker(
-  'mail-jobs',
+  'mail-queue',
   async (job) => {
     const { name, data } = job;
 
@@ -31,20 +32,27 @@ const worker = new Worker(
           console.log('No new emails found', messages);
           return;
         }
-
-        console.log('New emails found', messages);
+        console.log(`${messages.length} new emails found`);
 
         const jobRelatedEmails = await filterJobRelatedMessages(
           messages.filter((m): m is gmail_v1.Schema$Message => m !== undefined && m?.id !== undefined),
         );
-        console.log('jobRelatedEmails:- ', jobRelatedEmails);
+
+        // TODO: now we have to filter out the replied emails based on the threadId of the message,
+
+        const repliedMessages = await filterRepliedMessages(
+          messages.filter((m): m is gmail_v1.Schema$Message => m !== undefined && m?.id !== undefined),
+        );
+
+        console.log(`${repliedMessages.length} replied emails found`, repliedMessages);
+
         if (jobRelatedEmails.length === 0) {
           console.log('No job related emails found');
           return;
         }
         runWorkflow(jobRelatedEmails)
           .then((res) => {
-            console.log(res);
+            console.log('res of the workflow', res);
           })
           .catch(console.error);
         break;
@@ -59,9 +67,9 @@ const worker = new Worker(
 );
 
 worker.on('completed', (job) => {
-  console.log(`✅ Completed job ${job.id}`);
+  console.log(`✅ Completed email screening job ${job.id}`);
 });
 
 worker.on('failed', (job, err) => {
-  console.error(`❌ Failed job ${job?.id}:`, err);
+  console.error(`❌ Failed email screening job ${job?.id}:`, err);
 });

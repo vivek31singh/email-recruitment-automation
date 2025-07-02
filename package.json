@@ -11,7 +11,9 @@
     "start": "node build/workers/temporalWorker.js",
     "start.watch": "nodemon src/workers/temporalWorker.ts",
     "mail-worker": "node build/workers/mailWorker.js",
-    "start:mail-worker": "ts-node src/workers/mailWorker.ts",
+    "start:mail-worker": "nodemon src/workers/mailWorker.ts",
+    "job-crawler-worker": "node build/workers/crawlJobWorker.js",
+    "start:job-crawler-worker": "nodemon src/workers/crawlJobWorker.ts",
     "server": "concurrently \"node build/server/webhook.js\" \"ngrok http 3000\" \"node log-ngrok-url.mjs\"",
     "start.server": "nodemon src/server/webhook.ts",
     "workflow": "ts-node src/client.ts"
@@ -37,7 +39,8 @@
     "mammoth": "^1.9.1",
     "nanoid": "3.x",
     "node-cron": "^4.1.0",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "puppeteer": "^24.10.2"
   },
   "devDependencies": {
     "@temporalio/testing": "^1.11.8",

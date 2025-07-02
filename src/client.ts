@@ -6,14 +6,17 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-export async function runWorkflow(jobRelatedEmails?: { id: string; snippet: string; payload: any }[]) {
+export async function runWorkflow(
+  jobRelatedEmails?: { id: string; subject: string; snippet: string; payload: any , labelIds: string[], threadId: string,
+messageId: string}[],
+) {
   // Connect to the default Server location
 
   const enviroment = process.env.NODE_ENV;
-  
+
   const connection = await Connection.connect({
     address: enviroment === 'development' ? 'localhost:7233' : 'temporal:7233',
-    tls: enviroment === 'development' ? false : {}
+    tls: enviroment === 'development' ? false : {},
   });
   // In production, pass options to configure TLS and other settings:
   // {
