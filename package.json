@@ -1,5 +1,5 @@
 {
-  "name": "temporal-hello-world",
+  "name": "recruitment-ai-automation",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,7 +16,7 @@
     "start:job-crawler-worker": "nodemon src/workers/crawlJobWorker.ts",
     "server": "concurrently \"node build/server/webhook.js\" \"ngrok http 3000\" \"node log-ngrok-url.mjs\"",
     "start.server": "nodemon src/server/webhook.ts",
-    "workflow": "ts-node src/client.ts"
+    "workflow": "ts-node src/runners/runRecruitmentWorkflow.ts"
   },
   "nodemonConfig": {
     "execMap": {

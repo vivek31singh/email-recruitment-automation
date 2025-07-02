@@ -3,7 +3,7 @@ import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 import { config } from 'dotenv';
 import path from 'path';
-import { redisConnection } from '../queue/connection';
+import { redis, redisConnection } from '../queue/connection';
 import { Queue } from 'bullmq';
 import { application } from 'express';
 import { threadId } from 'worker_threads';
@@ -312,6 +312,63 @@ export async function scheduleReminder({
     },
   );
 }
+
+export const storeEmailWithResume = async (email: {
+    id: string;
+    subject: string;
+    body: string;
+    payload: any;
+    labelIds: string[];
+    threadId: string;
+    messageId: string;
+}, jobTitle: string) => {
+  try {
+    await redis.hset(`resumeEmail-${email.threadId}`, {
+      id: email.id,
+      subject: email.subject,
+      body: email.body,
+      payload: JSON.stringify(email.payload),
+      labelIds: JSON.stringify(email.labelIds),
+      threadId: email.threadId,
+      messageId: email.messageId,
+      jobTitle: jobTitle
+    });
+    await redis.expire(`resumeEmail-${email.threadId}`, 60 * 60 * 24); // Set expiration to 24 hours
+  } catch (error) {
+    console.error('Error storing email with resume:', error);
+    throw new Error('Failed to store email with resume');
+  }
+}
+
+export const getAttachmentMail = async (redisKey: string): Promise<Record<string, string> | null> => {
+  if (!redisKey) {
+    console.warn('No redis key provided for getAttachmentMail');
+    return null;
+  }
+
+  try {
+    const emailData = await redis.hgetall(redisKey);
+
+    if (!emailData || Object.keys(emailData).length === 0) {
+      console.warn('No email data found in Redis for key:', redisKey);
+      return null;
+    }
+
+    try {
+      if (emailData.payload) emailData.payload = JSON.parse(emailData.payload);
+      if (emailData.labelIds) emailData.labelIds = JSON.parse(emailData.labelIds);
+    } catch (parseError) {
+      console.error('Failed to parse stored JSON fields:', parseError);
+      return null;
+    }
+
+    return emailData;
+  } catch (error) {
+    console.error('Failed to fetch email data from Redis:', error);
+    return null;
+  }
+};
+
 
 export async function extractAttachments(email: any) {
   const attachments = [];

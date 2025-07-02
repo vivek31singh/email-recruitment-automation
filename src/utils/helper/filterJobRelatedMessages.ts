@@ -1,6 +1,7 @@
 import { gmail_v1 } from 'googleapis';
 import { getGmailClient } from '../OAuth/gmailClient';
 import { threadId } from 'worker_threads';
+import { extractLatestReplyOnly, extractMessageBody } from './filterRepliedMessages';
 
 function isJobRelated(message: gmail_v1.Schema$Message): boolean | undefined {
   const payload = message.payload;
@@ -76,7 +77,7 @@ export async function filterJobRelatedMessages<Type extends Iterable<gmail_v1.Sc
   return relevantMessages.map((fm) => ({
     id: fm.data.id ?? '',
     subject: fm.data.payload?.headers?.find((h) => h.name === 'Subject')?.value ?? '',
-    snippet: fm.data.snippet ?? '',
+    body: extractLatestReplyOnly(extractMessageBody(fm.data.payload ?? {})) ?? fm.data.snippet ?? '',
     payload: fm.data.payload ?? {},
     labelIds: fm.data.labelIds ?? [],
     threadId: fm.data.threadId ?? '',

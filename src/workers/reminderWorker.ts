@@ -11,9 +11,8 @@ const reminderWorker = new Worker(
     switch (name) {
       case 'reminder-job':
         
-      const { email, emailId } = data;
-        // Check again if the user has responded just to be safe
-        // await sendEmail(email, emailId);
+      const { email } = data;
+        await sendEmail(email);
         break;
 
       default:

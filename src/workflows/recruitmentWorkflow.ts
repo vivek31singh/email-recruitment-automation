@@ -1,9 +1,10 @@
 import { proxyActivities } from '@temporalio/workflow';
 // Only import the activity types
 import type * as activities from '../activities/RecruitmentActivities';
-import { EvaluationResponse } from '../activities/RecruitmentActivities';
-import { getGmailClient } from '../utils/OAuth/gmailClient';
-import { threadId } from 'worker_threads';
+import { redis } from '../queue/connection';
+// import { EvaluationResponse } from '../activities/RecruitmentActivities';
+// import { getGmailClient } from '../utils/OAuth/gmailClient';
+// import { threadId } from 'worker_threads';
 
 const {
   askAI,
@@ -13,6 +14,7 @@ const {
   checkLabelExists,
   addLabelToEmail,
   scheduleReminder,
+  storeEmailWithResume,
   extractAttachments,
   getAttachmentData,
   extractTextFromDOCX,
@@ -37,7 +39,7 @@ export async function RecruitmentWorkflow(
   jobRelatedEmails?: {
     id: string;
     subject: string;
-    snippet: string;
+    body: string;
     payload: any;
     labelIds: string[];
     threadId: string;
@@ -73,7 +75,7 @@ export async function RecruitmentWorkflow(
     }
     const candidate = candidateHeader.value;
 
-    if (!email.snippet) {
+    if (!email.body || email.body.trim() === '') {
       const isRejected = await checkLabelExists({
         label: 'REJECTED',
         emailId: email.id,
@@ -106,11 +108,12 @@ export async function RecruitmentWorkflow(
 
       continue;
     }
+
     const prompt = `As an AI assistant, your task is to deduce the job position a candidate is applying for at a company.
 
 Utilize the details below:
 - Subject of Email: "${email.subject}"
-- Snippet from Email: "${email.snippet}"
+- body from Email: "${email.body}"
 
 Your response should be a JSON formatted as:
 
@@ -267,6 +270,8 @@ If the job role is indeterminable, return:
 
     await sendEmailAsReply(additionalInformationEmail);
 
+   await storeEmailWithResume(email, jobTitle)
+
     await addLabelToEmail({
       label: 'ADDITIONAL_INFORMATION_SENT',
       emailId: email.id,
@@ -288,58 +293,6 @@ If the job role is indeterminable, return:
       threadId: email.threadId,
     });
 
-    // const attachments: Attachments = await extractAttachments(email);
-    // let evaluationResponse: EvaluationResponse = {
-    //   score: 0,
-    //   strength: '',
-    //   weakness: '',
-    //   good_match: false,
-    //   follow_up_email: {
-    //     to: '',
-    //     subject: '',
-    //     body: '',
-    //   },
-    // };
-
-    // console.log('STEP 1: Extracted attachments', attachments.length);
-
-    // for (let file of attachments) {
-    //   if (!file.filename.endsWith('.pdf') && !file.filename.endsWith('.docx')) {
-    //     console.log('Skipping unsupported file', file);
-    //     const unsupportedEmailResponse = await sendUnsupportedFileResponse(email); // still sends immediately per unsupported file
-    //     console.log('Unsupported file response email sent', unsupportedEmailResponse);
-    //     return;
-    //   }
-
-    //   const attachmentData = await getAttachmentData({ id: email.id, attachment: file.attachment });
-
-    //   if (!attachmentData) {
-    //     console.log('Skipping empty attachment', attachmentData);
-    //     return;
-    //   }
-
-    //   let parsedResumeText: string;
-    //   if (file.filename.endsWith('.docx')) {
-    //     console.log('Extracting text from DOCX file');
-    //     parsedResumeText = await extractTextFromDOCX(attachmentData);
-    //     console.log('Extracted text:', parsedResumeText);
-    //   } else {
-    //     console.log('Extracting text from PDF file');
-    //     parsedResumeText = await extractTextFromPDF(attachmentData);
-    //     console.log('Extracted text:', parsedResumeText);
-    //   }
-
-    //   console.log('AI EVALUATION STARTED...');
-    //   const evaluation = await evaluateResume({ parsedResumeText, email });
-    //   console.log('AI EVALUATION COMPLETED', evaluation);
-    //   evaluationResponse = evaluation;
-    // }
-
-    // if (evaluationResponse) {
-    //   console.log('SENDING EMAIL RESPONSE...');
-    //   const emailResponse = await sendEmailResponse({ evaluationResponse: evaluationResponse, email });
-    //   console.log('EMAIL RESPONSE SENT', emailResponse);
-    // }
   }
 
   return 'Workflow Completed';

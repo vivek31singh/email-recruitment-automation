@@ -1,12 +1,13 @@
 import { Worker } from 'bullmq';
 import { redisConnection } from '../queue/connection';
-import { runWorkflow } from '../client';
+import { runRecruitmentWorkflow } from '../runners/runRecruitmentWorkflow';
 import { gmail_v1 } from 'googleapis';
 import { getHistoryId } from '../utils/helper/getHistoryid';
 import { fetchMessagesFromHistory } from '../utils/helper/fetchMessagesFromHistory';
 import { setHistoryId } from '../utils/helper/setHistoryId';
 import { filterJobRelatedMessages } from '../utils/helper/filterJobRelatedMessages';
 import { filterRepliedMessages } from '../utils/helper/filterRepliedMessages';
+import { runResumeScreeningWorkflow } from '../runners/runResumeScreeningWorkflow';
 
 const worker = new Worker(
   'mail-queue',
@@ -44,13 +45,19 @@ const worker = new Worker(
           messages.filter((m): m is gmail_v1.Schema$Message => m !== undefined && m?.id !== undefined),
         );
 
-        console.log(`${repliedMessages.length} replied emails found`, repliedMessages);
+        if (repliedMessages.length > 0) {
+          runResumeScreeningWorkflow(repliedMessages)
+            .then((res) => {
+              console.log('res of the resume screening workflow', res);
+            })
+            .catch(console.error);
+        }
 
         if (jobRelatedEmails.length === 0) {
           console.log('No job related emails found');
           return;
         }
-        runWorkflow(jobRelatedEmails)
+        runRecruitmentWorkflow(jobRelatedEmails)
           .then((res) => {
             console.log('res of the workflow', res);
           })

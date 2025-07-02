@@ -18,7 +18,7 @@ async function run() {
       connection,
       namespace: 'default',
       taskQueue: 'recruitment-ai-automation',
-      workflowsPath: require.resolve('../workflows/recruitmentWorkflow'),
+      workflowsPath: require.resolve('../workflows/index'),
       activities,
     });
 
